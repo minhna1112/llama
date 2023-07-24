@@ -4,3 +4,4 @@
 from .generation import Llama
 from .model import ModelArgs, Transformer
 from .tokenizer import Tokenizer
+from .streaming_generation import AsyncLlama
