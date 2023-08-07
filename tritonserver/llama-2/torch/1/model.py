@@ -35,12 +35,18 @@ sys.path.append(project_root)
 
 from torch import nn
 import torch
+import numpy as np
 # triton_python_backend_utils is available in every Triton Python model. You
 # need to use this module to create inference requests and responses. It also
 # contains some utility functions for extracting information from model_config
 # and converting Triton input/output types to numpy types.
 import triton_python_backend_utils as pb_utils
-from models.nllb import NLLB
+
+import sys
+
+sys.path.append(".")
+# from models.llama import Transformer
+from models.generation import Llama
 
 class TritonPythonModel:
     """Your Python model must use the same class name. Every Python model
@@ -72,15 +78,24 @@ class TritonPythonModel:
         # Get OUTPUT0 configuration
         output0_config = pb_utils.get_output_config_by_name(
             model_config, "output_ids")
+        output1_config = pb_utils.get_output_config_by_name(
+            model_config, "log_probs")
 
         # Convert Triton types to numpy types
         self.output0_dtype = pb_utils.triton_string_to_numpy(
             output0_config['data_type'])
-
+        self.output1_dtype = pb_utils.triton_string_to_numpy(
+            output1_config['data_type'])
         # Instantiate the PyTorch model
         model_name = self.parameters["model_file"]["string_value"] 
         checkpoint_path = os.path.join(filepath,"checkpoints",model_name)
-        self.model = NLLB(checkpoint_path)
+        tokenizer_path = os.path.join(filepath, "tokenizer.model")
+        self.model = Llama.build(
+          ckpt_dir=checkpoint_path,
+          tokenizer_path=tokenizer_path,
+          max_seq_len=4096,
+          max_batch_size=model_config["max_batch_size"]
+        )
 
     def execute(self, requests):
         """`execute` must be implemented in every Python model. `execute`
@@ -105,6 +120,7 @@ class TritonPythonModel:
         """
 
         output0_dtype = self.output0_dtype
+        output1_dtype = self.output1_dtype
 
         responses = []
 
@@ -112,20 +128,31 @@ class TritonPythonModel:
         # and create a pb_utils.InferenceResponse for each of them.
         for request in requests:
             # Get INPUT0
-            in_0 = pb_utils.get_input_tensor_by_name(request, "input_ids").as_numpy()
-            attention_mask= pb_utils.get_input_tensor_by_name(request, "attention_mask").as_numpy()           
-            forced_bos_token_id = pb_utils.get_input_tensor_by_name(request, "forced_bos_token_id").as_numpy()
-            max_length = pb_utils.get_input_tensor_by_name(request, "max_length").as_numpy()
+            in_0 : np.ndarray = pb_utils.get_input_tensor_by_name(request, "input_ids").as_numpy()
+            print(in_0.shape)
             
-            out_0 = self.model.predict(in_0, attention_mask, forced_bos_token_id, max_length)
+            kwargs = {}
+            
+            for input_name in ["min_prompt_len", "total_len", "temperature", "top_p"]:
+              kwargs.update({input_name: pb_utils.get_input_tensor_by_name(request, input_name).as_numpy()[0]})
+            
+            
+            # attention_mask= pb_utils.get_input_tensor_by_name(request, "attention_mask").as_numpy()           
+            # forced_bos_token_id = pb_utils.get_input_tensor_by_name(request, "forced_bos_token_id").as_numpy()
+            # max_length = pb_utils.get_input_tensor_by_name(request, "max_length").as_numpy()
+            
+            out_0, out_1 = self.model.generate(input_tokens= torch.from_numpy(in_0), **kwargs)
 
             out_0 = out_0.cpu().detach().numpy()
-
+            out_1 = out_1.cpu().detach().numpy()
+            print(out_0.shape)
             # Create output tensors. You need pb_utils.Tensor
             # objects to create pb_utils.InferenceResponse.
             print("output:", out_0)
             out_tensor_0 = pb_utils.Tensor("output_ids",
                                            out_0.astype(output0_dtype))
+            out_tensor_1 = pb_utils.Tensor("log_probs",
+                                           out_1.astype(output1_dtype))
 
             # Create InferenceResponse. You can set an error here in case
             # there was a problem with handling this inference request.
@@ -134,7 +161,7 @@ class TritonPythonModel:
             #
             # pb_utils.InferenceResponse(
             #    output_tensors=..., TritonError("An error occured"))
-            inference_response = pb_utils.InferenceResponse(output_tensors=[out_tensor_0])
+            inference_response = pb_utils.InferenceResponse(output_tensors=[out_tensor_0, out_tensor_1])
             responses.append(inference_response)
 
         # You should return a list of pb_utils.InferenceResponse. Length
