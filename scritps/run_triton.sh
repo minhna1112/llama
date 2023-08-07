@@ -1,0 +1,1 @@
+docker run --rm -p 8010:8001 --gpus all -v $(pwd)/tritonserver:/workspace/tritonserver --shm-size 4g -it llama-triton:v0.0.1 bash

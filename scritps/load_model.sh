@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1 RANK=0 WORLD_SIZE=1 MASTER_ADDR=0 MASTER_PORT=8004 tritonserver --model-repository=./tritonserver/llama-2/
