@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Literal, Optional, List
 from fastapi import FastAPI, Body
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from sse_starlette import EventSourceResponse
 
 import os
 
@@ -114,11 +115,11 @@ async def llama_chat_completion(model_input : ModelInputs) -> ChatPrediction:
     )
     
 @app.get("/llama/chat_completion_stream")
-async def llama_chat_completion_stream(model_input : ModelInputs, response: StreamingResponse = None):
+async def llama_chat_completion_stream(model_input : ModelInputs):
     # model_input = model_input.dict()
     dialog = model_input.dialog
     model_params = model_input.model_params.dict()    
-    response = StreamingResponse(generator.chat_completion_async(
+    response = EventSourceResponse(generator.chat_completion_async(
         [[m.dict() for m in dialog]],  # type: ignore
         **model_params
         ), media_type="text/event-stream")
@@ -148,7 +149,7 @@ async def stablecode_chat_completion_stream(model_input: ModelInputs):
     # model_input = model_input.dict()
     dialog = model_input.dialog
     model_params = model_input.model_params.dict()
-    response = StreamingResponse(stablecode.chat_completion_async(
+    response = EventSourceResponse(stablecode.chat_completion_async(
         [[m.dict() for m in dialog]],  # type: ignore
         **model_params
         ), media_type="text/event-stream")
