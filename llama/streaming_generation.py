@@ -54,7 +54,7 @@ class AsyncLlama(Llama):
             prev_pos = cur_pos
             if all(eos_reached):
                 break
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
             yield next_token
     
     def preprocess(self, dialogs: List[Dialog],  

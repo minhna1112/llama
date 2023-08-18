@@ -308,8 +308,7 @@ if __name__=='__main__':
             # ) 
             for i in range(4)
         ],
-        max_gen_len=2048
+        max_gen_len=2048,
+        # logprobs=True
     )
-    
-    from pprint import pprint
-    print([json.dumps(o) for o in out])
+    print(out)
