@@ -4,19 +4,21 @@ We are unlocking the power of large language models. Our latest version of Llama
 
 This release includes model weights and starting code for pretrained and fine-tuned Llama language models — ranging from 7B to 70B parameters.
 
-This repository is intended as a minimal example to load [Llama 2](https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/) models and run inference. For more detailed examples leveraging HuggingFace, see [llama-recipes](https://github.com/facebookresearch/llama-recipes/).
+This repository is intended as a minimal example to load [Llama 2](https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/) models and run inference. For more detailed examples leveraging Hugging Face, see [llama-recipes](https://github.com/facebookresearch/llama-recipes/).
+
+## Updates post-launch
+
+See [UPDATES.md](UPDATES.md). Also for a running list of frequently asked questions, see [here](https://github.com/facebookresearch/llama/blob/main/FAQ.md).
 
 ## Download
 
-⚠️ **7/18: We're aware of people encountering a number of download issues today. Anyone still encountering issues should remove all local files, re-clone the repository, and [request a new download link](https://ai.meta.com/resources/models-and-libraries/llama-downloads/). It's critical to do all of these in case you have local corrupt files. When you receive the email, copy *only* the link text - it should begin with https://download.llamameta.net and not with https://l.facebook.com, which will give errors.**
-
-
+⚠️ **7/18: We're aware of people encountering a number of download issues today. Anyone still encountering issues should remove all local files, re-clone the repository, and [request a new download link](https://ai.meta.com/resources/models-and-libraries/llama-downloads/). It's critical to do all of these in case you have local corrupt files.**
 
 In order to download the model weights and tokenizer, please visit the [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and accept our License.
 
-Once your request is approved, you will receive a signed URL over email. Then run the download.sh script, passing the URL provided when prompted to start the download. Make sure that you copy the URL text itself, **do not use the 'Copy link address' option** when you right click the URL. If the copied URL text starts with: https://download.llamameta.net, you copied it correctly. If the copied URL text starts with: https://l.facebook.com, you copied it the wrong way.
+Once your request is approved, you will receive a signed URL over email. Then run the download.sh script, passing the URL provided when prompted to start the download.
 
-Pre-requisites: make sure you have `wget` and `md5sum` installed. Then to run the script: `./download.sh`.
+Pre-requisites: Make sure you have `wget` and `md5sum` installed. Then to run the script: `./download.sh`.
 
 Keep in mind that the links expire after 24 hours and a certain amount of downloads. If you start seeing errors such as `403: Forbidden`, you can always re-request a link.
 
@@ -24,13 +26,37 @@ Keep in mind that the links expire after 24 hours and a certain amount of downlo
 
 We are also providing downloads on [Hugging Face](https://huggingface.co/meta-llama). You must first request a download from the Meta AI website using the same email address as your Hugging Face account. After doing so, you can request access to any of the models on Hugging Face and within 1-2 days your account will be granted access to all versions.
 
-## Setup
+## Quick Start
 
-In a conda env with PyTorch / CUDA available, clone the repo and run in the top-level directory:
+You can follow the steps below to quickly get up and running with Llama 2 models. These steps will let you run quick inference locally. For more examples, see the [Llama 2 recipes repository](https://github.com/facebookresearch/llama-recipes). 
 
+1. In a conda env with PyTorch / CUDA available clone and download this repository.
+
+2. In the top level directory run:
+    ```bash
+    pip install -e .
+    ```
+3. Visit the [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and register to download the model/s.
+
+4. Once registered, you will get an email with a URL to download the models. You will need this URL when you run the download.sh script.
+
+5. Once you get the email, navigate to your downloaded llama repository and run the download.sh script. 
+    - Make sure to grant execution permissions to the download.sh script
+    - During this process, you will be prompted to enter the URL from the email. 
+    - Do not use the “Copy Link” option but rather make sure to manually copy the link from the email.
+
+6. Once the model/s you want have been downloaded, you can run the model locally using the command below:
+```bash
+torchrun --nproc_per_node 1 example_chat_completion.py \
+    --ckpt_dir llama-2-7b-chat/ \
+    --tokenizer_path tokenizer.model \
+    --max_seq_len 512 --max_batch_size 6
 ```
-pip install -e .
-```
+**Note**
+- Replace  `llama-2-7b-chat/` with the path to your checkpoint directory and `tokenizer.model` with the path to your tokenizer model.
+- The `–nproc_per_node` should be set to the [MP](#inference) value for the model you are using.
+- Adjust the `max_seq_len` and `max_batch_size` parameters as needed.
+- This example runs the [example_chat_completion.py](example_chat_completion.py) found in this repository but you can change that to a different .py file.
 
 ## Inference
 
@@ -48,7 +74,7 @@ All models support sequence length up to 4096 tokens, but we pre-allocate the ca
 
 These models are not finetuned for chat or Q&A. They should be prompted so that the expected answer is the natural continuation of the prompt.
 
-See `example_text_completion.py` for some examples. To illustrate, see command below to run it with the llama-2-7b model (`nproc_per_node` needs to be set to the `MP` value):
+See `example_text_completion.py` for some examples. To illustrate, see the command below to run it with the llama-2-7b model (`nproc_per_node` needs to be set to the `MP` value):
 
 ```
 torchrun --nproc_per_node 1 example_text_completion.py \
@@ -70,7 +96,7 @@ Examples using llama-2-7b-chat:
 torchrun --nproc_per_node 1 example_chat_completion.py \
     --ckpt_dir llama-2-7b-chat/ \
     --tokenizer_path tokenizer.model \
-    --max_seq_len 512 --max_batch_size 4
+    --max_seq_len 512 --max_batch_size 6
 ```
 
 Llama 2 is a new technology that carries potential risks with use. Testing conducted to date has not — and could not — cover all scenarios.
